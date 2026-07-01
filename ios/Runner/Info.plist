@@ -53,6 +53,7 @@
 	<!-- HealthKit Usage Descriptions -->
 	<key>NSHealthShareUsageDescription</key>
 	<string>Ứng dụng AI Health cần quyền đọc dữ liệu sức khỏe của bạn để theo dõi và đưa ra lời khuyên sức khỏe phù hợp.</string>
+	
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Ứng dụng AI Health cần quyền ghi dữ liệu sức khỏe để lưu trữ các chỉ số theo dõi.</string>
 </dict>

@@ -1,9 +1,8 @@
-/// Represents a single health data measurement
 class HealthDataPoint {
   final HealthMetricType type;
   final double value;
-  final double? valueSystolic; // For blood pressure
-  final double? valueDiastolic; // For blood pressure
+  final double? valueSystolic;
+  final double? valueDiastolic;
   final String unit;
   final DateTime dateFrom;
   final DateTime dateTo;
@@ -20,16 +19,49 @@ class HealthDataPoint {
     this.source = 'Unknown',
   });
 
+  /// Cắt bỏ mili-giây để đảm bảo UNIQUE constraint khớp chính xác giữa các lần sync
+  static String _toNormalizedIso(DateTime dt) {
+    final truncated = DateTime(
+      dt.year,
+      dt.month,
+      dt.day,
+      dt.hour,
+      dt.minute,
+      dt.second,
+    );
+    return truncated.toIso8601String();
+  }
+
   Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'value': value,
-        if (valueSystolic != null) 'systolic': valueSystolic,
-        if (valueDiastolic != null) 'diastolic': valueDiastolic,
-        'unit': unit,
-        'dateFrom': dateFrom.toIso8601String(),
-        'dateTo': dateTo.toIso8601String(),
-        'source': source,
-      };
+    'type': type.name,
+    'value': value,
+    if (valueSystolic != null) 'systolic': valueSystolic,
+    if (valueDiastolic != null) 'diastolic': valueDiastolic,
+    'unit': unit,
+    'dateFrom': _toNormalizedIso(dateFrom),
+    'dateTo': _toNormalizedIso(dateTo),
+    'source': source,
+  };
+
+  factory HealthDataPoint.fromJson(Map<String, dynamic> json) {
+    return HealthDataPoint(
+      type: HealthMetricType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => HealthMetricType.heartRate,
+      ),
+      value: (json['value'] as num).toDouble(),
+      valueSystolic: json['systolic'] != null
+          ? (json['systolic'] as num).toDouble()
+          : null,
+      valueDiastolic: json['diastolic'] != null
+          ? (json['diastolic'] as num).toDouble()
+          : null,
+      unit: json['unit'] as String? ?? '',
+      dateFrom: DateTime.parse(json['dateFrom'] as String),
+      dateTo: DateTime.parse(json['dateTo'] as String),
+      source: json['source'] as String? ?? 'Unknown',
+    );
+  }
 
   String get displayValue {
     switch (type) {
@@ -98,13 +130,7 @@ enum HealthMetricType {
   height,
 }
 
-enum HealthStatus {
-  normal,
-  low,
-  warning,
-  high,
-  critical,
-}
+enum HealthStatus { normal, low, warning, high, critical }
 
 extension HealthMetricTypeExt on HealthMetricType {
   String get displayName {

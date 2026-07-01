@@ -20,14 +20,21 @@ class SettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Connection status
-              _buildSectionTitle('Kết nối sức khỏe'),
-              _buildStatusCard(provider),
+          // Connection status
+          _buildSectionTitle('Kết nối sức khỏe'),
+          _buildStatusCard(provider),
+          const SizedBox(height: 12),
+          _buildSettingsTile(
+            icon: Icons.sync_lock,
+            title: 'Thay đổi nguồn đồng bộ',
+            subtitle: 'Chọn giữa Samsung Health hoặc Health Connect',
+            onTap: () => provider.resetSyncSource(),
+          ),
 
-              const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-              // Data management
-              _buildSectionTitle('Quản lý dữ liệu'),
+          // Data management
+          _buildSectionTitle('Quản lý dữ liệu'),
               _buildSettingsTile(
                 icon: Icons.refresh,
                 title: 'Làm mới dữ liệu',
@@ -105,6 +112,16 @@ class SettingsScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
+          _buildStatusRow(
+            'Nguồn đồng bộ',
+            provider.selectedSyncSource == 'samsung'
+                ? 'Samsung Health'
+                : provider.selectedSyncSource == 'health_connect'
+                    ? 'Health Connect'
+                    : 'Chưa chọn',
+            AppTheme.primaryColor,
+          ),
+          const Divider(height: 20),
           _buildStatusRow(
             'HealthKit / Health Connect',
             provider.isHealthAvailable ? 'Có sẵn' : 'Không khả dụng',

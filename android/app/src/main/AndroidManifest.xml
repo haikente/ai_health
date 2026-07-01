@@ -1,4 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-sdk tools:overrideLibrary="com.samsung.android.sdk.health.data" />
 
     <!-- Health Connect Permissions - READ -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
@@ -21,6 +24,15 @@
     <!-- ACTIVITY_RECOGNITION needed for STEPS on some devices -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
 
+    <!-- Background health data reading (Health Connect) -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- Samsung Health ContentProvider permissions                        -->
+    <!-- Cho phép app đọc dữ liệu trực tiếp từ Samsung Health             -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY"/>
+
     <!-- Mã thêm để quét mã QR -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -28,7 +40,14 @@
     <application
         android:label="AI Health"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        tools:replace="android:allowBackup">
+
+        <!-- Samsung Health Data SDK Read Permissions -->
+        <meta-data
+            android:name="com.samsung.android.health.permission.read"
+            android:value="com.samsung.health.step_count;com.samsung.health.heart_rate;com.samsung.health.sleep;com.samsung.health.blood_pressure;com.samsung.health.blood_glucose;com.samsung.health.oxygen_saturation;com.samsung.health.body_temperature;com.samsung.health.weight;com.samsung.health.height;com.samsung.health.body_composition;com.samsung.health.user_profile" />
 
         <!-- 
           Permissions rationale activity for Health Connect.
@@ -78,20 +97,19 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- Package visibility: allow querying Samsung Health & Health Connect -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Required to detect and connect to Health Connect -->
+        <!-- Health Connect -->
         <package android:name="com.google.android.apps.healthdata" />
         <intent>
             <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
         </intent>
+        <!-- Samsung Health: cho phép detect và đọc ContentProvider -->
+        <package android:name="com.sec.android.app.shealth" />
     </queries>
 </manifest>

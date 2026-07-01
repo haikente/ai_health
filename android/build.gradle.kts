@@ -3,6 +3,18 @@ allprojects {
         google()
         mavenCentral()
     }
+    afterEvaluate {
+        configurations.all {
+            resolutionStrategy.eachDependency {
+                if (requested.group == "androidx.tracing" && requested.name == "tracing") {
+                    useVersion("1.0.0")
+                }
+                if (requested.group == "androidx.core" && (requested.name == "core" || requested.name == "core-ktx")) {
+                    useVersion("1.10.1")
+                }
+            }
+        }
+    }
 }
 
 val newBuildDir: Directory =

@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ai_health"
-        // Health Connect requires minSdk 26
+        // Health Connect requires minSdk 26, Samsung Health SDK is runtime guarded
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -40,3 +40,10 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation(files("libs/samsung-health-data-api-1.1.0.aar"))
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("androidx.tracing:tracing:1.0.0")
+}
+

@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/health_provider.dart';
 import 'utils/app_theme.dart';
+import 'services/background_sync_service.dart';
 
 import 'injection_container.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initDependencies();
+  await BackgroundSyncManager.initialize();
   runApp(const AIHealthApp());
 }
 
