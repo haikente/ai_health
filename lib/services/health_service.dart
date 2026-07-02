@@ -39,7 +39,6 @@ class HealthService {
 
   bool get isAuthorized => _isAuthorized;
 
-
   Future<void> configure() async {
     if (!isMobilePlatform) return;
     await _health.configure();
@@ -83,24 +82,22 @@ class HealthService {
     try {
       await configure();
 
-      // On Android: request ACTIVITY_RECOGNITION permission first (needed for Steps)
       if (Platform.isAndroid) {
-        debugPrint('Health: Requesting ACTIVITY_RECOGNITION runtime permission...');
+        debugPrint(
+          'Health: Requesting ACTIVITY_RECOGNITION runtime permission...',
+        );
         final activityStatus = await Permission.activityRecognition.request();
         debugPrint('Health: ACTIVITY_RECOGNITION status: $activityStatus');
       }
 
-      // Build a deduplicated list: types that are read-only + types that are read+write
       final List<HealthDataType> allTypes = [];
       final List<HealthDataAccess> permissions = [];
 
-      // First add all write types as READ_WRITE
       for (final type in _writeTypes) {
         allTypes.add(type);
         permissions.add(HealthDataAccess.READ_WRITE);
       }
 
-      // Then add read-only types (those not in _writeTypes)
       for (final type in _readTypes) {
         if (!_writeTypes.contains(type)) {
           allTypes.add(type);
@@ -108,24 +105,23 @@ class HealthService {
         }
       }
 
-      debugPrint('Health: Requesting authorization for ${allTypes.length} types...');
+      debugPrint(
+        'Health: Requesting authorization for ${allTypes.length} types...',
+      );
       for (int i = 0; i < allTypes.length; i++) {
         debugPrint('  [${i + 1}] ${allTypes[i].name} → ${permissions[i]}');
       }
 
-      // Request all permissions at once
       _isAuthorized = await _health.requestAuthorization(
         allTypes,
         permissions: permissions,
       );
       debugPrint('Health authorization result: $_isAuthorized');
 
-      // If that failed, try requesting in smaller groups
       if (!_isAuthorized) {
         debugPrint('Health: Full request failed, trying individual groups...');
         _isAuthorized = await _requestAuthorizationInGroups();
       }
-
       return _isAuthorized;
     } catch (e) {
       debugPrint('Error requesting health authorization: $e');
@@ -137,7 +133,6 @@ class HealthService {
   Future<bool> _requestAuthorizationInGroups() async {
     bool anySuccess = false;
 
-    // Group 1: Heart Rate
     try {
       final ok = await _health.requestAuthorization(
         [HealthDataType.HEART_RATE],
@@ -149,10 +144,12 @@ class HealthService {
       debugPrint('  Group Heart Rate error: $e');
     }
 
-    // Group 2: Blood Pressure (systolic + diastolic together)
     try {
       final ok = await _health.requestAuthorization(
-        [HealthDataType.BLOOD_PRESSURE_SYSTOLIC, HealthDataType.BLOOD_PRESSURE_DIASTOLIC],
+        [
+          HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
+          HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
+        ],
         permissions: [HealthDataAccess.READ_WRITE, HealthDataAccess.READ_WRITE],
       );
       debugPrint('  Group Blood Pressure: $ok');
@@ -161,7 +158,6 @@ class HealthService {
       debugPrint('  Group Blood Pressure error: $e');
     }
 
-    // Group 3: Blood Glucose
     try {
       final ok = await _health.requestAuthorization(
         [HealthDataType.BLOOD_GLUCOSE],
@@ -173,7 +169,6 @@ class HealthService {
       debugPrint('  Group Blood Glucose error: $e');
     }
 
-    // Group 4: SpO2
     try {
       final ok = await _health.requestAuthorization(
         [HealthDataType.BLOOD_OXYGEN],
@@ -185,7 +180,6 @@ class HealthService {
       debugPrint('  Group SpO2 error: $e');
     }
 
-    // Group 5: Body Temperature
     try {
       final ok = await _health.requestAuthorization(
         [HealthDataType.BODY_TEMPERATURE],
@@ -197,7 +191,6 @@ class HealthService {
       debugPrint('  Group Body Temp error: $e');
     }
 
-    // Group 6: Steps (requires ACTIVITY_RECOGNITION)
     try {
       final ok = await _health.requestAuthorization(
         [HealthDataType.STEPS],
@@ -209,7 +202,6 @@ class HealthService {
       debugPrint('  Group Steps error: $e');
     }
 
-    // Group 7: Weight + Height (read only)
     try {
       final ok = await _health.requestAuthorization(
         [HealthDataType.WEIGHT, HealthDataType.HEIGHT],
@@ -225,7 +217,6 @@ class HealthService {
     return anySuccess;
   }
 
-  /// Check if Health Connect (Android) or HealthKit (iOS) is available
   Future<bool> isHealthAvailable() async {
     if (!isMobilePlatform) return false;
 
@@ -235,7 +226,6 @@ class HealthService {
         debugPrint('Health Connect SDK status: $status');
         return status == HealthConnectSdkStatus.sdkAvailable;
       }
-      // HealthKit is always available on iOS devices
       return Platform.isIOS;
     } catch (e) {
       debugPrint('Error checking health availability: $e');
@@ -243,7 +233,6 @@ class HealthService {
     }
   }
 
-  /// Install Health Connect on Android if not installed
   Future<void> installHealthConnect() async {
     if (Platform.isAndroid) {
       await _health.installHealthConnect();
@@ -263,8 +252,6 @@ class HealthService {
     );
   }
 
-  /// Fetch blood pressure data (systolic & diastolic)
-  /// Pairs systolic and diastolic by matching timestamps (rounded to minute)
   Future<List<app.HealthDataPoint>> fetchBloodPressure({
     DateTime? start,
     DateTime? end,
@@ -285,9 +272,10 @@ class HealthService {
         endTime: now,
       );
 
-      debugPrint('BP raw: ${systolicData.length} systolic, ${diastolicData.length} diastolic');
+      debugPrint(
+        'BP raw: ${systolicData.length} systolic, ${diastolicData.length} diastolic',
+      );
 
-      // Build map of diastolic values keyed by dateFrom (rounded to minute)
       final diaMap = <int, HealthDataPoint>{};
       for (final d in diastolicData) {
         final key = d.dateFrom.millisecondsSinceEpoch ~/ 60000;
@@ -300,22 +288,26 @@ class HealthService {
         final key = sysRec.dateFrom.millisecondsSinceEpoch ~/ 60000;
         final diaRec = diaMap[key];
         if (diaRec == null) {
-          debugPrint('  BP: No diastolic match for systolic at ${sysRec.dateFrom}, skipping');
+          debugPrint(
+            '  BP: No diastolic match for systolic at ${sysRec.dateFrom}, skipping',
+          );
           continue;
         }
 
         final sys = _extractNumericValue(sysRec.value);
         final dia = _extractNumericValue(diaRec.value);
-        results.add(app.HealthDataPoint(
-          type: app.HealthMetricType.bloodPressure,
-          value: sys,
-          valueSystolic: sys,
-          valueDiastolic: dia,
-          unit: 'mmHg',
-          dateFrom: sysRec.dateFrom,
-          dateTo: sysRec.dateTo,
-          source: sysRec.sourceName,
-        ));
+        results.add(
+          app.HealthDataPoint(
+            type: app.HealthMetricType.bloodPressure,
+            value: sys,
+            valueSystolic: sys,
+            valueDiastolic: dia,
+            unit: 'mmHg',
+            dateFrom: sysRec.dateFrom,
+            dateTo: sysRec.dateTo,
+            source: sysRec.sourceName,
+          ),
+        );
       }
 
       debugPrint('BP paired: ${results.length} records');
@@ -326,8 +318,6 @@ class HealthService {
     }
   }
 
-  /// Fetch blood glucose data
-  /// Health Connect stores blood glucose in mg/dL, we convert to mmol/L
   Future<List<app.HealthDataPoint>> fetchBloodGlucose({
     DateTime? start,
     DateTime? end,
@@ -347,11 +337,11 @@ class HealthService {
       return healthData.map((dp) {
         double val = _extractNumericValue(dp.value);
 
-        // Health Connect returns mg/dL — convert to mmol/L if value > 30
-        // (mmol/L values are typically 2-30, mg/dL values are typically 36-540)
         if (val > 30) {
           val = val / 18.0182;
-          debugPrint('  -> BLOOD_GLUCOSE: converted ${_extractNumericValue(dp.value)} mg/dL → ${val.toStringAsFixed(1)} mmol/L');
+          debugPrint(
+            '  -> BLOOD_GLUCOSE: converted ${_extractNumericValue(dp.value)} mg/dL → ${val.toStringAsFixed(1)} mmol/L',
+          );
         } else {
           debugPrint('  -> BLOOD_GLUCOSE: $val mmol/L (already in mmol/L)');
         }
@@ -371,8 +361,6 @@ class HealthService {
     }
   }
 
-  /// Fetch SpO2 data
-  /// Normalizes values: if value <= 1.0, it's a decimal (0-1) → multiply by 100
   Future<List<app.HealthDataPoint>> fetchSpO2({
     DateTime? start,
     DateTime? end,
@@ -384,7 +372,6 @@ class HealthService {
       end: end,
     );
 
-    // Normalize: some sources return 0-1 decimal, we need 0-100 percentage
     return data.map((dp) {
       if (dp.value > 0 && dp.value <= 1.0) {
         final normalized = dp.value * 100;
@@ -402,7 +389,6 @@ class HealthService {
     }).toList();
   }
 
-  /// Fetch body temperature data
   Future<List<app.HealthDataPoint>> fetchBodyTemperature({
     DateTime? start,
     DateTime? end,
@@ -415,17 +401,75 @@ class HealthService {
     );
   }
 
-  /// Fetch steps data
   Future<List<app.HealthDataPoint>> fetchSteps({
     DateTime? start,
     DateTime? end,
   }) async {
-    return _fetchData(
+    final now = end ?? DateTime.now();
+    final startDate = start ?? now.subtract(const Duration(days: 7));
+
+    final midnightStart = startDate.isUtc
+        ? DateTime.utc(startDate.year, startDate.month, startDate.day)
+        : DateTime(startDate.year, startDate.month, startDate.day);
+
+    final rawPoints = await _fetchData(
       type: HealthDataType.STEPS,
       metricType: app.HealthMetricType.steps,
-      start: start,
-      end: end,
+      start: midnightStart,
+      end: now,
     );
+
+    return aggregateSteps(rawPoints);
+  }
+
+  static List<app.HealthDataPoint> aggregateSteps(
+    List<app.HealthDataPoint> rawPoints,
+  ) {
+    if (rawPoints.isEmpty) return [];
+
+    final Map<String, List<app.HealthDataPoint>> grouped = {};
+    for (final dp in rawPoints) {
+      final date = dp.dateFrom.toLocal();
+      final dayKey =
+          '${date.year.toString().padLeft(4, '0')}-'
+          '${date.month.toString().padLeft(2, '0')}-'
+          '${date.day.toString().padLeft(2, '0')}';
+      grouped.putIfAbsent(dayKey, () => []).add(dp);
+    }
+
+    final List<app.HealthDataPoint> aggregated = [];
+    final sortedKeys = grouped.keys.toList()..sort();
+
+    for (final key in sortedKeys) {
+      final points = grouped[key]!;
+      if (points.isEmpty) continue;
+
+      final totalValue = points.fold<double>(0.0, (sum, p) => sum + p.value);
+
+      final date = points.first.dateFrom.toLocal();
+      final midnight = DateTime(date.year, date.month, date.day);
+      final sources = points.map((p) => p.source).toSet().toList()..sort();
+
+      debugPrint(
+        'Steps aggregated for $key: $totalValue steps from '
+        '${points.length} record(s), sources: ${sources.join(', ')}',
+      );
+
+      aggregated.add(
+        app.HealthDataPoint(
+          type: app.HealthMetricType.steps,
+          value: totalValue,
+          unit: points.first.unit,
+          dateFrom: midnight,
+          dateTo: midnight
+              .add(const Duration(days: 1))
+              .subtract(const Duration(milliseconds: 1)),
+          source: sources.join(', '),
+        ),
+      );
+    }
+
+    return aggregated;
   }
 
   /// Fetch weight data
@@ -441,9 +485,6 @@ class HealthService {
     );
   }
 
-  /// Fetch height data.
-  ///
-  /// Some health sources return height in meters, while the app displays cm.
   Future<List<app.HealthDataPoint>> fetchHeight({
     DateTime? start,
     DateTime? end,
@@ -474,12 +515,8 @@ class HealthService {
 
   /// Fetch all health data for a given period
   Future<Map<app.HealthMetricType, List<app.HealthDataPoint>>>
-      fetchAllHealthData({
-    DateTime? start,
-    DateTime? end,
-  }) async {
+  fetchAllHealthData({DateTime? start, DateTime? end}) async {
     final results = <app.HealthMetricType, List<app.HealthDataPoint>>{};
-
     debugPrint('=== FETCHING ALL HEALTH DATA ===');
     debugPrint('Period: ${start ?? "7 days ago"} → ${end ?? "now"}');
 
@@ -514,7 +551,6 @@ class HealthService {
     return results;
   }
 
-  /// Generic fetch method for a single data type with retry logic
   Future<List<app.HealthDataPoint>> _fetchData({
     required HealthDataType type,
     required app.HealthMetricType metricType,
@@ -537,7 +573,9 @@ class HealthService {
 
         return healthData.map((dp) {
           final val = _extractNumericValue(dp.value);
-          debugPrint('  -> ${type.name}: $val ${metricType.unit} at ${dp.dateFrom} from ${dp.sourceName}');
+          debugPrint(
+            '  -> ${type.name}: $val ${metricType.unit} at ${dp.dateFrom} from ${dp.sourceName}',
+          );
           return app.HealthDataPoint(
             type: metricType,
             value: val,
@@ -548,9 +586,10 @@ class HealthService {
           );
         }).toList();
       } catch (e) {
-        debugPrint('Error fetching $type (attempt ${attempt + 1}/${maxRetries + 1}): $e');
+        debugPrint(
+          'Error fetching $type (attempt ${attempt + 1}/${maxRetries + 1}): $e',
+        );
         if (attempt < maxRetries) {
-          // Wait before retry with exponential backoff
           await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
           debugPrint('Retrying fetch for ${type.name}...');
         } else {
@@ -562,19 +601,16 @@ class HealthService {
     return [];
   }
 
-  /// ===== WRITE DATA TO HEALTH CONNECT / HEALTHKIT =====
-
-  /// Write heart rate data
   Future<bool> writeHeartRate(double value, {DateTime? time}) async {
     return _writeData(HealthDataType.HEART_RATE, value, time: time);
   }
 
-  /// Write blood pressure data (systolic + diastolic)
-  Future<bool> writeBloodPressure(double systolic, double diastolic,
-      {DateTime? time}) async {
+  Future<bool> writeBloodPressure(
+    double systolic,
+    double diastolic, {
+    DateTime? time,
+  }) async {
     if (!isMobilePlatform) return false;
-
-    // Use writeBloodPressure API from the health plugin
     final t = time ?? DateTime.now();
     try {
       final success = await _health.writeBloodPressure(
@@ -586,8 +622,9 @@ class HealthService {
       debugPrint('Write BP: $systolic/$diastolic = $success');
       return success;
     } catch (e) {
-      // Fallback: write separately
-      debugPrint('writeBloodPressure API failed ($e), trying separate writes...');
+      debugPrint(
+        'writeBloodPressure API failed ($e), trying separate writes...',
+      );
       try {
         final sysBool = await _health.writeHealthData(
           value: systolic,
@@ -610,8 +647,6 @@ class HealthService {
     }
   }
 
-  /// Write blood glucose data
-  /// App uses mmol/L but Health Connect stores mg/dL, so we convert
   Future<bool> writeBloodGlucose(double valueInMmol, {DateTime? time}) async {
     // Convert mmol/L → mg/dL for Health Connect
     final valueInMgDl = valueInMmol * 18.0182;
@@ -619,24 +654,20 @@ class HealthService {
     return _writeData(HealthDataType.BLOOD_GLUCOSE, valueInMgDl, time: time);
   }
 
-  /// Write SpO2 data
   Future<bool> writeSpO2(double value, {DateTime? time}) async {
     return _writeData(HealthDataType.BLOOD_OXYGEN, value, time: time);
   }
 
-  /// Write body temperature data
   Future<bool> writeBodyTemperature(double value, {DateTime? time}) async {
     return _writeData(HealthDataType.BODY_TEMPERATURE, value, time: time);
   }
 
-  /// Write steps data
   Future<bool> writeSteps(double value, {DateTime? time}) async {
     if (!isMobilePlatform) {
       debugPrint('Health: Not a mobile platform, skipping write.');
       return false;
     }
 
-    // Steps is an INTERVAL type — startTime must be BEFORE endTime
     final end = time ?? DateTime.now();
     final start = end.subtract(const Duration(minutes: 10));
     try {
@@ -654,9 +685,11 @@ class HealthService {
     }
   }
 
-  /// Generic write method for a single data type
-  Future<bool> _writeData(HealthDataType type, double value,
-      {DateTime? time}) async {
+  Future<bool> _writeData(
+    HealthDataType type,
+    double value, {
+    DateTime? time,
+  }) async {
     if (!isMobilePlatform) {
       debugPrint('Health: Not a mobile platform, skipping write.');
       return false;
@@ -678,12 +711,10 @@ class HealthService {
     }
   }
 
-  /// Extract numeric value from HealthValue
   double _extractNumericValue(HealthValue value) {
     if (value is NumericHealthValue) {
       return value.numericValue.toDouble();
     }
-    // Fallback: try to parse from string
     return double.tryParse(value.toString()) ?? 0.0;
   }
 }
